@@ -3,10 +3,10 @@ const mongoose = require("mongoose");
 const paymentSchema = new mongoose.Schema({
   bookingId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "Property",
+    ref: "Booking",
     required: true,
   },
-  userName: { type: String, required: true },
+  email: { type: String, required: true },
   amount: Number, // in Naira
   reference: String,
   status: { type: String, default: "pending" },

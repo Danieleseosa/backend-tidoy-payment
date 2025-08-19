@@ -2,7 +2,7 @@ require("dotenv").config();
 console.log("PAYSTACK_SECRET_KEY =>", process.env.PAYSTACK_SECRET_KEY);
 
 // controllers/paystackController.js
-const Property = require("../models/property");
+const Booking = require("../models/booking");
 const Payment = require("../models/payment");
 const paystack = require("paystack-api")(process.env.PAYSTACK_SECRET_KEY);
 
@@ -18,27 +18,28 @@ const initializePayment = async (req, res) => {
     }
 
     // Find the property in DB
-    const booking = await Property.findById(bookingId);
+    const booking = await Booking.findById(bookingId);
     if (!booking) {
-      return res.status(404).json({ error: "Property not found" });
+      return res.status(404).json({ error: "Booking not found" });
     }
 
     // Convert to kobo (Paystack works with kobo)
-    const amountInKobo = booking.pricePerNight * 100;
+    const amountInKobo = booking.totalPrice * 100;
 
     // Initialize payment with Paystack
     const paymentInit = await paystack.transaction.initialize({
       email,
       amount: amountInKobo,
-      reference: `PROP_${booking._id}_${Date.now()}`,
+      reference: `BOOK_${booking._id}_${Date.now()}`,
       callback_url: `${process.env.FRONTEND_URL}/payment/verify`,
+      metadata: { bookingId: booking._id.toString() }, // <-- add this
     });
 
     // Save payment record
     await Payment.create({
       bookingId,
       email,
-      amount: booking.pricePerNight,
+      amount: booking.totalPrice,
       reference: paymentInit.data.reference,
       status: "pending",
     });
@@ -61,6 +62,11 @@ const verifyPayment = async (req, res) => {
 
     if (verification.data.status === "success") {
       await Payment.findOneAndUpdate({ reference }, { status: "paid" });
+
+      // Update booking status too
+      await Booking.findByIdAndUpdate(verification.data.metadata?.bookingId, {
+        status: "paid",
+      });
 
       return res.json({
         message: "Payment successful",
