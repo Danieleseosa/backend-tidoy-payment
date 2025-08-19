@@ -1,0 +1,22 @@
+{
+  "name": "productdetailbackend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "nodemon app.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "dotenv": "^17.2.1",
+    "express": "^5.1.0",
+    "mongoose": "^8.17.1",
+    "nodemon": "^3.1.10",
+    "paystack-api": "^2.0.6",
+    "react-paystack": "^6.0.0"
+  }
+}
