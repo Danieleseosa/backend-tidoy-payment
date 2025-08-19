@@ -1,4 +1,5 @@
 const express = require("express");
+const cors = require("cors");
 const mongoose = require("mongoose");
 require("dotenv").config();
 
@@ -9,6 +10,14 @@ const paymentRoutes = require("./routes/paymentRoute");
 const app = express();
 
 const port = process.env.PORT || 5000;
+
+app.use(
+  cors({
+    origin: ["http://localhost:5174"], // frontend dev URL
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    credentials: true,
+  })
+);
 
 app.use(express.json());
 
