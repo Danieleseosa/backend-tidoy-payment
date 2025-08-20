@@ -11,10 +11,10 @@ const initializePayment = async (req, res) => {
   try {
     const { bookingId, email } = req.body;
 
-    if (!bookingId || !email) {
+    if (!bookingId || !email || !amount) {
       return res
         .status(400)
-        .json({ error: "bookingId and email are required" });
+        .json({ error: "bookingId, email, and amount are required" });
     }
 
     // Find the property in DB

@@ -23,23 +23,43 @@ const checkAvailability = async (req, res) => {
 
 const createBooking = async (req, res) => {
   try {
-    const { propertyId, startDate, endDate, guests } = req.body;
+    const {
+      propertyId,
+      startDate,
+      endDate,
+      guests,
+      totalPrice: frontendTotalPrice,
+    } = req.body;
 
+    // Validate required fields
     if (!propertyId || !startDate || !endDate) {
-      return res.status(400).json({ error: "Missing required fields" });
+      return res
+        .status(400)
+        .json({
+          error: "Missing required fields: propertyId, startDate, or endDate",
+        });
     }
 
-    // Check product exists
-    const propertyDoc = await Property.findById(propertyId);
+    // Check if property exists
+    const propertyDoc = await Property.findById(propertyId).select(
+      "pricePerNight"
+    );
     if (!propertyDoc) {
-      return res.status(404).json({ error: "Product not found" });
+      return res.status(404).json({ error: "Property not found" });
+    }
+
+    // Parse dates and validate
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    if (isNaN(start) || isNaN(end) || start >= end) {
+      return res.status(400).json({ error: "Invalid date range" });
     }
 
     // Check availability
     const overlapping = await Booking.findOne({
       propertyId,
-      startDate: { $lt: new Date(endDate) },
-      endDate: { $gt: new Date(startDate) },
+      startDate: { $lt: end },
+      endDate: { $gt: start },
     });
     if (overlapping) {
       return res
@@ -49,26 +69,45 @@ const createBooking = async (req, res) => {
 
     // Calculate price
     const msPerDay = 24 * 60 * 60 * 1000;
-    const nights = Math.ceil(
-      (new Date(endDate) - new Date(startDate)) / msPerDay
-    );
-    const totalPrice =
-      nights * propertyDoc.pricePerNight + (req.body.extraCharge || 0);
+    const nights = Math.ceil((end - start) / msPerDay);
+    const basePrice = nights * propertyDoc.pricePerNight;
+    const extraCharge = req.body.extraCharge || 0;
+    const backendTotalPrice = basePrice + extraCharge;
+
+    // Prefer frontend totalPrice if provided, validate against backend calculation
+    const finalTotalPrice = frontendTotalPrice
+      ? Math.abs(frontendTotalPrice - backendTotalPrice) < 0.01
+        ? frontendTotalPrice
+        : backendTotalPrice
+      : backendTotalPrice;
+
+    if (finalTotalPrice <= 0) {
+      return res.status(400).json({ error: "Total price must be positive" });
+    }
+
+    // Get userId from authentication (assuming JWT middleware)
+    const userId = req.user?.id || req.body.userId || null; // Adjust based on your auth setup
 
     const newBooking = new Booking({
-      userId: req.body.userId || null,
+      userId,
       propertyId,
-      startDate,
-      endDate,
+      startDate: start,
+      endDate: end,
       guests: guests || 1,
-      totalPrice,
+      totalPrice: finalTotalPrice,
       status: "pending_payment",
     });
 
     await newBooking.save();
-    res.status(201).json(newBooking);
+    res.status(201).json({
+      ...newBooking.toObject(),
+      message: "Booking created successfully",
+    });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("Booking creation error:", err); // Log for debugging
+    res
+      .status(500)
+      .json({ error: "Internal server error", details: err.message });
   }
 };
 
