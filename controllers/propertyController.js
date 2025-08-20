@@ -1,6 +1,7 @@
 const Property = require("../models/property");
 
 const getPropertyDetails = async (req, res) => {
+  const {propertyId} = req.params()
   try {
     const property = await Property.findById(req.params.id);
     if (!property) return res.status(404).json({ error: "property not found" });

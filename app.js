@@ -13,7 +13,7 @@ const port = process.env.PORT || 5000;
 
 app.use(
   cors({
-    origin: ["http://localhost:5175"], // frontend dev URL
+    origin: ["http://localhost:5176"], // frontend dev URL
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true,
   })
