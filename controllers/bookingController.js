@@ -9,8 +9,9 @@ const checkAvailability = async (req, res) => {
       return res.status(400).json({ error: "startDate and endDate required" });
     }
 
+    const { propertyId } = req.body;
     const overlapping = await Booking.findOne({
-      propertyId: req.params.propertyId,
+      propertyId,
       startDate: { $lt: new Date(endDate) },
       endDate: { $gt: new Date(startDate) },
     });
@@ -33,11 +34,9 @@ const createBooking = async (req, res) => {
 
     // Validate required fields
     if (!propertyId || !startDate || !endDate) {
-      return res
-        .status(400)
-        .json({
-          error: "Missing required fields: propertyId, startDate, or endDate",
-        });
+      return res.status(400).json({
+        error: "Missing required fields: propertyId, startDate, or endDate",
+      });
     }
 
     // Check if property exists
@@ -85,11 +84,7 @@ const createBooking = async (req, res) => {
       return res.status(400).json({ error: "Total price must be positive" });
     }
 
-    // Get userId from authentication (assuming JWT middleware)
-    const userId = req.user?.id || req.body.userId || null; // Adjust based on your auth setup
-
     const newBooking = new Booking({
-      userId,
       propertyId,
       startDate: start,
       endDate: end,
