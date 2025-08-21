@@ -9,47 +9,46 @@ const paystack = require("paystack-api")(process.env.PAYSTACK_SECRET_KEY);
 // Initialize Payment
 const initializePayment = async (req, res) => {
   try {
-    const { bookingId, email } = req.body;
+    const { bookingId, email, amount } = req.body;
 
     if (!bookingId || !email || !amount) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    // Paystack requires amount in KOBO (₦500 = 50000)
+    const response = await fetch(
+      "https://api.paystack.co/transaction/initialize",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          amount, // already in kobo from frontend
+          metadata: { bookingId },
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error(" Paystack init error:", data);
       return res
-        .status(400)
-        .json({ error: "bookingId, email, and amount are required" });
+        .status(500)
+        .json({ error: "Payment initialization failed", details: data });
     }
 
-    // Find the property in DB
-    const booking = await Booking.findById(bookingId);
-    if (!booking) {
-      return res.status(404).json({ error: "Booking not found" });
-    }
-
-    // Convert to kobo (Paystack works with kobo)
-    const amountInKobo = booking.totalPrice * 100;
-
-    // Initialize payment with Paystack
-    const paymentInit = await paystack.transaction.initialize({
-      email,
-      amount: amountInKobo,
-      reference: `BOOK_${booking._id}_${Date.now()}`,
-      callback_url: `${process.env.FRONTEND_URL}/payment/verify`,
-      metadata: { bookingId: booking._id.toString() }, // <-- add this
-    });
-
-    // Save payment record
-    await Payment.create({
-      bookingId,
-      email,
-      amount: booking.totalPrice,
-      reference: paymentInit.data.reference,
-      status: "pending",
-    });
-
-    res.json({
-      authorizationUrl: paymentInit.data.authorization_url,
-      reference: paymentInit.data.reference,
+    return res.json({
+      authorizationUrl: data.data.authorization_url,
+      accessCode: data.data.access_code,
+      reference: data.data.reference,
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("🔥 Paystack init error:", err.response?.data || err.message);
+    return res.status(500).json({ error: "Payment initialization failed" });
   }
 };
 

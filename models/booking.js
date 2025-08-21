@@ -8,7 +8,7 @@ const bookingSchema = new mongoose.Schema({
   },
   startDate: { type: Date, required: true },
   endDate: { type: Date, required: true },
-  guests: { type: Number, required: true },
+  guests: { type: Number, default: 1 },
   price: { type: Number }, // base price without VAT
   vatRate: { type: Number, default: 7.5 },
   totalPrice: Number,
