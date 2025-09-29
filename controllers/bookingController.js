@@ -4,16 +4,18 @@ const Property = require("../models/property");
 
 const checkAvailability = async (req, res) => {
   try {
-    const { startDate, endDate } = req.body;
-    if (!startDate || !endDate) {
-      return res.status(400).json({ error: "startDate and endDate required" });
+    const { checkInDate, checkOutDate } = req.body;
+    if (!checkInDate || !checkOutDate) {
+      return res
+        .status(400)
+        .json({ error: "CheckInDate and CheckOutDate required" });
     }
 
     const { propertyId } = req.body;
     const overlapping = await Booking.findOne({
       propertyId,
-      startDate: { $lt: new Date(endDate) },
-      endDate: { $gt: new Date(startDate) },
+      checkInDate: { $lt: new Date(checkOutDate) },
+      checkOutDate: { $gt: new Date(checkInDate) },
     });
 
     res.json({ available: !overlapping });
@@ -26,16 +28,17 @@ const createBooking = async (req, res) => {
   try {
     const {
       propertyId,
-      startDate,
-      endDate,
-      guests,
+      checkInDate,
+      checkOutDate,
+      guestCount,
       totalPrice: frontendTotalPrice,
     } = req.body;
 
     // Validate required fields
-    if (!propertyId || !startDate || !endDate) {
+    if (!propertyId || !checkInDate || !checkOutDate) {
       return res.status(400).json({
-        error: "Missing required fields: propertyId, startDate, or endDate",
+        error:
+          "Missing required fields: propertyId, CheckInDate, or CheckOutDate",
       });
     }
 
@@ -48,8 +51,8 @@ const createBooking = async (req, res) => {
     }
 
     // Parse dates and validate
-    const start = new Date(startDate);
-    const end = new Date(endDate);
+    const start = new Date(checkInDate);
+    const end = new Date(checkOutDate);
     if (isNaN(start) || isNaN(end) || start >= end) {
       return res.status(400).json({ error: "Invalid date range" });
     }
@@ -57,8 +60,8 @@ const createBooking = async (req, res) => {
     // Check availability
     const overlapping = await Booking.findOne({
       propertyId,
-      startDate: { $lt: end },
-      endDate: { $gt: start },
+      checkInDate: { $lt: end },
+      checkOutDate: { $gt: start },
     });
     if (overlapping) {
       return res
@@ -86,9 +89,9 @@ const createBooking = async (req, res) => {
 
     const newBooking = new Booking({
       propertyId,
-      startDate: start,
-      endDate: end,
-      guests: guests || 1,
+      checkInDate: start,
+      checkOutDate: end,
+      guestCount: guestCount || 1,
       totalPrice: finalTotalPrice,
       status: "pending_payment",
     });
