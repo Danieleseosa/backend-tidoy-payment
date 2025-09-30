@@ -28,7 +28,7 @@ const initializePayment = async (req, res) => {
           email,
           amount, // already in kobo from frontend
           metadata: { bookingId },
-          callback_url: "http://localhost:5173/payment/callback",
+          callback_url: "http://localhost:5173/",
         }),
       }
     );
