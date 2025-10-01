@@ -28,7 +28,7 @@ const initializePayment = async (req, res) => {
           email,
           amount, // already in kobo from frontend
           metadata: { bookingId },
-          callback_url: "https://tidoy-web-frontend-final.vercel.app/",
+          callback_url: "https://tidoy-main-seven.vercel.app/",
         }),
       }
     );
